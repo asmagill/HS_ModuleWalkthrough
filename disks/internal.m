@@ -26,11 +26,8 @@ int refTable ;
 
             lua_newtable(_L) ;
             for (id key in note.userInfo) {
-            // They should all be strings, but lets be certain...
-                if ([[note.userInfo objectForKey:key] isKindOfClass:[NSString class]]) {
-                    lua_pushstring(_L, [[note.userInfo objectForKey:key] UTF8String]) ;
-                    lua_setfield(_L, -2, [key UTF8String]) ;
-                }
+                lua_pushstring(_L, [[[note.userInfo objectForKey:key] description] UTF8String]) ;
+                lua_setfield(_L, -2, [key UTF8String]) ;
             }
 
             if (![[LuaSkin shared] protectedCallAndTraceback:2 nresults:0]) {
