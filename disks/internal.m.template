@@ -46,6 +46,9 @@ static luaL_Reg moduleLib[] = {
 // NOTE: ** Make sure to change luaopen_..._internal **
 int luaopen_hs__asm_module_internal(lua_State* L) {
     LuaSkin *skin = [LuaSkin shared];
+// Use this if your module doesn't have a module specific object that it returns.
+//    refTable = [skin registerLibrary:moduleLib metaFunctions:nil] ; // or module_metaLib
+// Use this if at least some of your functions return or act on a specific object unique to this module
     refTable = [skin registerLibraryWithObject:USERDATA_TAG
                                      functions:moduleLib
                                  metaFunctions:nil    // nil or module_metaLib

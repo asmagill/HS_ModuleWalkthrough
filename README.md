@@ -199,10 +199,13 @@ The `luaopen` function:  Traditionally the last function in the file, it is invo
 // NOTE: ** Make sure to change luaopen_..._internal **
 int luaopen_hs__asm_module_internal(lua_State* L) {
     LuaSkin *skin = [LuaSkin shared];
+// Use this if your module doesn't have a module specific object that it returns.
+//    refTable = [skin registerLibrary:moduleLib metaFunctions:nil] ; // or module_metaLib
+// Use this if at least some of your functions return or act on a specific object unique to this module
     refTable = [skin registerLibraryWithObject:USERDATA_TAG
                                      functions:moduleLib
                                  metaFunctions:nil // or module_metaLib
-                               objectFunctions:nil // or userdata_metaLib];
+                               objectFunctions:userdata_metaLib ];
 
     return 1;
 }
