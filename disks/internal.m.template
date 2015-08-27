@@ -52,7 +52,7 @@ int luaopen_hs__asm_module_internal(lua_State* L) {
     refTable = [skin registerLibraryWithObject:USERDATA_TAG
                                      functions:moduleLib
                                  metaFunctions:nil    // nil or module_metaLib
-                               objectFunctions:nil ]; // nil or userdata_metaLib
+                               objectFunctions:userdata_metaLib ];
 
     return 1;
 }
