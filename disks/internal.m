@@ -71,6 +71,10 @@ static int startObserver(lua_State* L) {
                selector:@selector(_heard:)
                    name:NSWorkspaceDidUnmountNotification
                  object:nil];
+
+    // this is a convention common in Hammerspoon -- any method on a userdata object which isn't used to
+    // specifically request data or check on the objects state should return the userdata object itself.
+    // This allows method chaining.
     lua_settop(L,1);
     return 1;
 }
@@ -109,8 +113,6 @@ static int userdata_gc(lua_State* L) {
 }
 
 // static int meta_gc(lua_State* __unused L) {
-//     [hsimageReferences removeAllIndexes];
-//     hsimageReferences = nil;
 //     return 0 ;
 // }
 
