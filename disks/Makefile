@@ -34,7 +34,7 @@ all: verify $(SOFILE)
 .m.so:
 	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
 
-install: verify install-objc install-lua
+install: install-objc install-lua
 
 verify: $(LUAFILE)
 	luac-5.3 -p $(LUAFILE) && echo "Passed" || echo "Failed"
