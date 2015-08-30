@@ -13,6 +13,7 @@ int refTable ;
 // }
 
 // static int userdata_tostring(lua_State* L) {
+//     return 1 ;
 // }
 
 // static int userdata_gc(lua_State* L) {
@@ -20,8 +21,6 @@ int refTable ;
 // }
 
 // static int meta_gc(lua_State* __unused L) {
-//     [hsimageReferences removeAllIndexes];
-//     hsimageReferences = nil;
 //     return 0 ;
 // }
 
