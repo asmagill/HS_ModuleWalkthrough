@@ -46,6 +46,7 @@ current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
 
 MODULE := $(current_dir)
 PREFIX ?= ~/.hammerspoon/hs/_asm
+HS_APPLICATION ?= /Applications
 
 OBJCFILE = ${wildcard *.m}
 LUAFILE  = ${wildcard *.lua}
@@ -62,7 +63,7 @@ ALLFILES += $(SOFILE)
 .SUFFIXES: .m .so
 
 CC=clang
-EXTRA_CFLAGS ?= -Wconversion -Wdeprecated -F/Library/Frameworks
+EXTRA_CFLAGS ?= -Wconversion -Wdeprecated -F$(HS_APPLICATION)/Hammerspoon.app/Contents/Frameworks
 CFLAGS  += $(DEBUG_CFLAGS) -fobjc-arc -DHS_EXTERNAL_MODULE -Wall -Wextra $(EXTRA_CFLAGS)
 LDFLAGS += -dynamiclib -undefined dynamic_lookup $(EXTRA_LDFLAGS)
 
@@ -108,9 +109,15 @@ As stated above, your tastes and requirements may differ, so use what works best
 
 Before we get started, a couple of things to consider... There are some useful definitions and short code snippits in a file named `hammerspoon.h` which is included in the core application.  To take advantage of this file, perform the following in your module's directory: `ln -s /Applications/Hammerspoon.app/Contents/Resources/hammerspoon.h` (Note that this requirement is necessary for any module you create.  There is discussion on moving this information into the LuaSkin framework or into its own framework, so this step may go away.)
 
-There is also a LuaSkin framework provided with Hammerspoon which simplifies some of the code necessary to interface with Hammerspoon.  It is highly recommended, but not required, for a 3rd-party module to utilize this class.  It is required, if you want your module to be considered for inclusion in the core.  To utilize this framework, perform the following (it only needs to be done once): `sudo ln -s /Applications/Hammerspoon.app/Contents/Frameworks/LuaSkin.framework /Library/Frameworks/LuaSkin.framework`
+<del>There is also a LuaSkin framework provided with Hammerspoon which simplifies some of the code necessary to interface with Hammerspoon.  It is highly recommended, but not required, for a 3rd-party module to utilize this class.  It is required, if you want your module to be considered for inclusion in the core.  To utilize this framework, perform the following (it only needs to be done once): `sudo ln -s /Applications/Hammerspoon.app/Contents/Frameworks/LuaSkin.framework /Library/Frameworks/LuaSkin.framework`
 
 You will be prompted for your password, and the framework will be linked where it can be found by the compiler.
+</del>
+
+A better way to link properly with the LuaSkin framework is to edit the `HS_APPLICATION` variable in the Makefile described above or include it as a prefix when issuing the make command.  The `HS_APPLICATION` variable should be set to the location where the Hammerspoon.app is installed.  Usually this will be in /Applications, and if so, you don't need to make any changes.  If you have installed it in another location, edit the Makefile as suggested, or build it with a command like this:
+~~~sh
+$ HS_APPLICATION=/path/where/hammerspoon/is/installed make
+~~~
 
 ##### internal.m - a breakdown of parts
 
@@ -290,7 +297,7 @@ static int startObserver(lua_State* L) {
                selector:@selector(_heard:)
                    name:NSWorkspaceDidUnmountNotification
                  object:nil];
-    
+
     // this is a convention common in Hammerspoon -- any method on a userdata object which isn't used to
     // specifically request data or check on the objects state should return the userdata object itself.
     // This allows method chaining as will be seen in the example of usage below.
