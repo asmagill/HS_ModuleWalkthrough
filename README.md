@@ -107,14 +107,14 @@ As stated above, your tastes and requirements may differ, so use what works best
 
 ##### internal.m
 
-Before we get started, a couple of things to consider... There are some useful definitions and short code snippits in a file named `hammerspoon.h` which is included in the core application.  To take advantage of this file, perform the following in your module's directory: `ln -s /Applications/Hammerspoon.app/Contents/Resources/hammerspoon.h` (Note that this requirement is necessary for any module you create.  There is discussion on moving this information into the LuaSkin framework or into its own framework, so this step may go away.)
+<del>Before we get started, a couple of things to consider... There are some useful definitions and short code snippits in a file named `hammerspoon.h` which is included in the core application.  To take advantage of this file, perform the following in your module's directory: `ln -s /Applications/Hammerspoon.app/Contents/Resources/hammerspoon.h` (Note that this requirement is necessary for any module you create.  There is discussion on moving this information into the LuaSkin framework or into its own framework, so this step may go away.)</del>
 
 <del>There is also a LuaSkin framework provided with Hammerspoon which simplifies some of the code necessary to interface with Hammerspoon.  It is highly recommended, but not required, for a 3rd-party module to utilize this class.  It is required, if you want your module to be considered for inclusion in the core.  To utilize this framework, perform the following (it only needs to be done once): `sudo ln -s /Applications/Hammerspoon.app/Contents/Frameworks/LuaSkin.framework /Library/Frameworks/LuaSkin.framework`
 
 You will be prompted for your password, and the framework will be linked where it can be found by the compiler.
 </del>
 
-A better way to link properly with the LuaSkin framework is to edit the `HS_APPLICATION` variable in the Makefile described above or include it as a prefix when issuing the make command.  The `HS_APPLICATION` variable should be set to the location where the Hammerspoon.app is installed.  Usually this will be in /Applications, and if so, you don't need to make any changes.  If you have installed it in another location, edit the Makefile as suggested, or build it with a command like this:
+To link properly with the LuaSkin framework edit the `HS_APPLICATION` variable in the Makefile described above or include it as a prefix when issuing the make command.  The `HS_APPLICATION` variable should be set to the location where the Hammerspoon.app is installed.  Usually this will be in /Applications, and if so, you don't need to make any changes.  If you have installed it in another location, edit the Makefile as suggested, or build it with a command like this:
 ~~~sh
 $ HS_APPLICATION=/path/where/hammerspoon/is/installed make
 ~~~
@@ -128,7 +128,6 @@ Some basic header stuff.  Note the #define USERDATA_TAG... this should be uncomm
 ~~~objC
 #import <Cocoa/Cocoa.h>
 #import <LuaSkin/LuaSkin.h>
-#import "hammerspoon.h"
 
 // #define USERDATA_TAG        "hs._asm.module"
 int refTable ;
@@ -226,7 +225,6 @@ Here is the final code for this example.  Note that this code uses the LuaSkin f
 ~~~objC
 #import <Cocoa/Cocoa.h>
 #import <LuaSkin/LuaSkin.h>
-#import "hammerspoon.h"
 
 #define USERDATA_TAG        "hs._asm.disks"
 int refTable ;
@@ -406,7 +404,7 @@ NSWorkspaceDidUnmountNotification: { NSDevicePath = "/Volumes/EFI", NSWorkspaceV
 
 Mission accomplished!
 
-##### Without the LuaSkin Framework and Hammerspoon.h
+##### Without the LuaSkin Framework
 
 For those more familiar with the core Lua C API, this will also work, but makes the code a little more complicated.  First off, the HSDiskWatcherClass would have to have a property to hold the LuaState, but this is relatively minor.
 
