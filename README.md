@@ -243,32 +243,32 @@ int refTable ;
     }
 
     - (void) heard:(NSNotification*)note {
+        LuaSkin *skin = [LuaSkin shared] ;
+
         if (self.fn != LUA_NOREF) {
-            lua_State *_L = [[LuaSkin shared] L];
-            lua_rawgeti(_L, LUA_REGISTRYINDEX, self.fn);
-            lua_pushstring(_L, [[note name] UTF8String]);
+            lua_State *_L = [skin L];
+            [skin pushLuaRef:refTable ref:self.fn];
+            [skin pushNSObject:[note name]] ;
 
-            lua_newtable(_L) ;
-            for (id key in note.userInfo) {
-                lua_pushstring(_L, [[[note.userInfo objectForKey:key] description] UTF8String]) ;
-                lua_setfield(_L, -2, [key UTF8String]) ;
-            }
+            [skin pushNSObject:note.userInfo withOptions:LS_NSDescribeUnknownTypes] ;
 
-            if (![[LuaSkin shared] protectedCallAndTraceback:2 nresults:0]) {
+            if (![skin protectedCallAndTraceback:2 nresults:0]) {
                 const char *errorMsg = lua_tostring(_L, -1);
-                showError(_L, (char *)errorMsg);
+                [skin logError:[NSString stringWithFormat:@"%s: %s", USERDATA_TAG, errorMsg]];
+                lua_pop(_L, 1) ; // remove error message from stack
             }
         }
     }
 @end
 
 static int newObserver(lua_State* L) {
-    luaL_checktype(L, 1, LUA_TFUNCTION);
+    LuaSkin *skin = [LuaSkin shared] ;
+    [skin checkArgs:LS_TFUNCTION, LS_TBREAK];
 
     HSDiskWatcherClass* listener = [[HSDiskWatcherClass alloc] init];
 
     lua_pushvalue(L, 1);
-    listener.fn               = luaL_ref(L, LUA_REGISTRYINDEX) ;
+    listener.fn               = [skin luaRef:refTable];
 
     void** ud = lua_newuserdata(L, sizeof(id*)) ;
     *ud = (__bridge_retained void*)listener ;

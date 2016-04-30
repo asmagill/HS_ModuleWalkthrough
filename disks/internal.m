@@ -1,8 +1,8 @@
 #import <Cocoa/Cocoa.h>
 #import <LuaSkin/LuaSkin.h>
 
-#define USERDATA_TAG        "hs._asm.disks"
-int refTable ;
+#define USERDATA_TAG "hs._asm.disks"
+static int refTable = LUA_NOREF ;
 
 @interface HSDiskWatcherClass : NSObject
     @property int fn;
@@ -22,14 +22,10 @@ int refTable ;
 
         if (self.fn != LUA_NOREF) {
             lua_State *_L = [skin L];
-            lua_rawgeti(_L, LUA_REGISTRYINDEX, self.fn);
+            [skin pushLuaRef:refTable ref:self.fn];
             [skin pushNSObject:[note name]] ;
 
-            lua_newtable(_L) ;
-            for (id key in note.userInfo) {
-                [skin pushNSObject:[[note.userInfo objectForKey:key] description]] ;
-                lua_setfield(_L, -2, [key UTF8String]) ;
-            }
+            [skin pushNSObject:note.userInfo withOptions:LS_NSDescribeUnknownTypes] ;
 
             if (![skin protectedCallAndTraceback:2 nresults:0]) {
                 const char *errorMsg = lua_tostring(_L, -1);
@@ -41,12 +37,13 @@ int refTable ;
 @end
 
 static int newObserver(lua_State* L) {
-    luaL_checktype(L, 1, LUA_TFUNCTION);
+    LuaSkin *skin = [LuaSkin shared] ;
+    [skin checkArgs:LS_TFUNCTION, LS_TBREAK];
 
     HSDiskWatcherClass* listener = [[HSDiskWatcherClass alloc] init];
 
     lua_pushvalue(L, 1);
-    listener.fn               = luaL_ref(L, LUA_REGISTRYINDEX) ;
+    listener.fn               = [skin luaRef:refTable];
 
     void** ud = lua_newuserdata(L, sizeof(id*)) ;
     *ud = (__bridge_retained void*)listener ;
