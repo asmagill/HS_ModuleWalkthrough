@@ -7,6 +7,8 @@ HS_APPLICATION ?= /Applications
 
 OBJCFILE = ${wildcard *.m}
 LUAFILE  = ${wildcard *.lua}
+HEADERS  = ${wildcard *.h}
+
 SOFILE  := $(OBJCFILE:.m=.so)
 DEBUG_CFLAGS ?= -g
 
@@ -19,20 +21,23 @@ ALLFILES += $(SOFILE)
 
 .SUFFIXES: .m .so
 
-CC=clang
-EXTRA_CFLAGS ?= -Wconversion -Wdeprecated -F$(HS_APPLICATION)/Hammerspoon.app/Contents/Frameworks
-CFLAGS  += $(DEBUG_CFLAGS) -fobjc-arc -DHS_EXTERNAL_MODULE -Wall -Wextra $(EXTRA_CFLAGS)
+#CC=cc
+CC=@clang
+WARNINGS ?= -Weverything -Wno-objc-missing-property-synthesis -Wno-implicit-atomic-properties -Wno-direct-ivar-access -Wno-cstring-format-directive -Wno-padded -Wno-covered-switch-default -Wno-missing-prototypes -Werror-implicit-function-declaration
+EXTRA_CFLAGS ?= -F$(HS_APPLICATION)/Hammerspoon.app/Contents/Frameworks -mmacosx-version-min=10.10
+
+CFLAGS  += $(DEBUG_CFLAGS) -fmodules -fobjc-arc -DHS_EXTERNAL_MODULE $(WARNINGS) $(EXTRA_CFLAGS)
 LDFLAGS += -dynamiclib -undefined dynamic_lookup $(EXTRA_LDFLAGS)
 
 all: verify $(SOFILE)
 
-.m.so:
+.m.so: $(HEADERS) $(OBJCFILE)
 	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
 
-install: install-objc install-lua
+install: verify install-objc install-lua
 
 verify: $(LUAFILE)
-	luac-5.3 -p $(LUAFILE) && echo "Passed" || echo "Failed"
+	@if $$(hash lua-5.3 >& /dev/null); then (luac-5.3 -p $(LUAFILE) && echo "Lua Compile Verification Passed"); else echo "Skipping Lua Compile Verification"; fi
 
 install-objc: $(SOFILE)
 	mkdir -p $(PREFIX)/$(MODULE)
@@ -44,7 +49,7 @@ install-lua: $(LUAFILE)
 	install -m 0644 $(LUAFILE) $(PREFIX)/$(MODULE)
 
 clean:
-	rm -v -rf $(SOFILE) *.dSYM $(DOC_FILE)
+	rm -v -rf $(SOFILE) *.dSYM
 
 uninstall:
 	rm -v -f $(PREFIX)/$(MODULE)/{$(subst $(space),$(comma),$(ALLFILES))}

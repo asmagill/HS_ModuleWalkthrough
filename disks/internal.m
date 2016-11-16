@@ -1,5 +1,5 @@
-#import <Cocoa/Cocoa.h>
-#import <LuaSkin/LuaSkin.h>
+@import Cocoa ;
+@import LuaSkin ;
 
 #define USERDATA_TAG "hs._asm.disks"
 static int refTable = LUA_NOREF ;
