@@ -1,29 +1,31 @@
-Hammerspoon Module Walkthrough
-------------------------------
+Hammerspoon Module Example
+--------------------------
 
-The purpose of this walkthrough is to describe the process I use for developing Lua modules for use with [Hammerspoon](http://www.hammerspoon.org).  It is by no means the only way, and does not cover all possible variants, but it should give a basic understanding of my process.
+The purpose of this example is to describe the process I use for developing Lua modules for use with [Hammerspoon](http://www.hammerspoon.org).  It is by no means the only way, and does not cover all possible variants, but it should give a basic understanding of my process.
 
-This walkthrough assumes that you have XCode or the XCode Command Line utlities installed.  If not, go to https://developer.apple.com or use the App Store application and get it installed -- nothing here will work if you don't do that first.
+This overview assumes that you have XCode or the XCode Command Line utlities installed.  If not, go to https://developer.apple.com or use the App Store application and get it installed -- nothing here will work if you don't do that first.
 
 #### Background
-Modules which extend the Lua functionality available can be entirely written in Lua or a hybrid of Lua and a compiled component. For the purposes of this walk through, I focus on the hybrid module with Objective-C as the compiled component.  Lua has a well developed [C API](http://www.lua.org/manual/5.3/manual.html#4) which will be used in this example.
+Modules which extend the Lua functionality available can be entirely written in Lua or a hybrid of Lua and a compiled component. For the purposes of this example, I focus on the hybrid module with Objective-C as the compiled component.  Lua has a well developed [C API](http://www.lua.org/manual/5.3/manual.html#4) which will be used in this example and Hammerspoon includes the LuaSkin framework which has been developed in conjunction with Hammerspoon to make this even easier.
 
-For this example, we will be coding this as an external module (sometimes referred to as a 3rd-Party module in the [Hammerspoon group](https://groups.google.com/forum/#!forum/hammerspoon) or [Hammerspoon issues tracker](https://github.com/Hammerspoon/hammerspoon/issues)), separate from the Hammerspoon code available at https://github.com/Hammerspoon/hammerspoon.  This is done for two reasons:  it allows for faster turn around during testing, and it is, in my oppinion, easier.  If you believe your module should be considered for inclusion within the Hammerspoon core, it is still easiest to code it as a stand alone entity first so people can test it out and discuss how it might best be included.
+This example is of an external hybrid module (sometimes referred to as a 3rd-Party module in the [Hammerspoon group](https://groups.google.com/forum/#!forum/hammerspoon) or [Hammerspoon issues tracker](https://github.com/Hammerspoon/hammerspoon/issues)), separate from the Hammerspoon code available at https://github.com/Hammerspoon/hammerspoon.  This is done for two reasons:  it allows for faster turn around during development, and it is, in my oppinion, easier.  If you believe your module should be considered for inclusion within the Hammerspoon core, it is still easier to code it as a stand alone entity first so people can test it out and discuss how it might best be included.
 
-For the purposes of this example, we want to develop a module which will allow us to register a callback function that will be invoked everytime a disk is mounted or unmounted from the system.  To do this, we will be using the shared NSWorkspace instance.
+A brief overview of the individual files is described here.  For more specific implementation details, please examine the comments in the files included in the [templates/](templates) subdirectory.  A specific implementation is included in the [disks/](disks) subdirectory.
+
+*If you've viewed earlier versions of this document, it was presented in the past as a Walkthrough... this proved difficult to maintain and keep current, so I am trying an overview approach where most of the detail is actually in the comments of the relevant files.  Hopefully this will make keeping at least the templates current over time easier.*
 
 #### First things first
 
-For our module, we want to call it `disks`.  Hammerspoon has a tradition of naming its modules in the style of `hs.modulename`, but since we're still testing this, this example will go with `hs._asm.disks`.  The `_asm` can be anything you choose - it's purely orginizational, but by prefacing the module name with `hs._asm` it's clear that this is not a builtin core module.
+The example of a fully working module provided is named `disks`.  Hammerspoon has a tradition of naming its modules in the style of `hs.modulename`, but since this is an external module, its full name can be thought of as `hs._asm.disks`.  The `_asm` can be anything you choose - it's purely orginizational, but by prefacing the module name with `hs._asm` it's clear that this is not a builtin core module.
 
-Note that this naming convention just defines the path where Hammerspoon/Lua can find the necessary support files.  As we'll see towards the end, when using a module, you can give it any name that makes sense in your code at the time you use it.
+Note that this naming convention just defines the path where Hammerspoon/Lua can find the necessary support files.  By following this convention and making sure to install the finished module within the search paths (`package.path` and `package.cpath`) used by the `require` command, users can load your module with `require("hs._asm.disks")` (or whatever matches your module name and organizational tag.)
 
-A hybrid module is usually, though not always, composed of 3 files:
+A hybrid module is usually, though not always, composed of 3 or 4 files:
 * init.lua - this file contains any logic which can best be handled in Lua, and also includes a reference to the compiled code so that it is loaded and available.
 * internal.m - this contains the source code for the compiled portion of the module.
 * Makefile - this contains the necessary instructions for building and installing the module in a place where Hammerspoon can find it.
+* docs.json - this file contains documentation information about the module which can be used by Hammerspoon's built in documentation server.  This file is completely optional.
 
-So, make a folder with the name you want to call your module (in this cases `disks`) and lets get started.
 
 ##### init.lua
 The complexity of this file will vary.  As a general rule of thumb, it is encouraged that anything which *can* be handled in Lua, *is* handled in Lua because a crash or failure here just dumps error messages to the Hammerspoon console.  A crash in the compiled code can cause the entire Hammerspoon application to terminate, and not always with a clear explanation in the Console application as to why or where.
@@ -34,444 +36,53 @@ local module = require("hs._asm.disks.internal")
 return module
 ~~~
 
-Traditionally there is more, and for a module which is entirely based upon compiled code, this isn't strictly necessary, but we may decide later that some code can be handled more easily in Lua or that we want to add documentation information (Not discussed here... I think the existing samples at the Hammerspoon github site are still mostly valid, and the process for adding 3rd party documentation still needs to be fleshed out... look for an update or supplement to this), and its easier to do this in Lua than in compiled code.
+Traditionally there is more, as described in the [annotated template](templates/init.lua) I usually use.  The implemented version for `hs._asm.disks` can be seen in [disks](disks/init.lua).
 
 ##### Makefile
 
-Preferences vary, and you may find that your coding habits are better served by something else, but the following is my usual Makefile:
+Preferences vary, and you may find that your coding habits are better served by something else, but I usually use something based on [Makefile](template/Makefile).
 
-~~~make
-mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
-current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
 
-MODULE := $(current_dir)
-PREFIX ?= ~/.hammerspoon/hs/_asm
-HS_APPLICATION ?= /Applications
+I use this particular Makefile because it is pretty generic and works without change for most of the modules I have coded.  Change the `MODPATH` line so that it matches your desired location (i.e change _asm to your organizational label of choice).
 
-OBJCFILE = ${wildcard *.m}
-LUAFILE  = ${wildcard *.lua}
-SOFILE  := $(OBJCFILE:.m=.so)
-DEBUG_CFLAGS ?= -g
-
-# special vars for uninstall
-space :=
-space +=
-comma := ,
-ALLFILES := $(LUAFILE)
-ALLFILES += $(SOFILE)
-
-.SUFFIXES: .m .so
-
-CC=clang
-EXTRA_CFLAGS ?= -Wconversion -Wdeprecated -F$(HS_APPLICATION)/Hammerspoon.app/Contents/Frameworks
-CFLAGS  += $(DEBUG_CFLAGS) -fobjc-arc -DHS_EXTERNAL_MODULE -Wall -Wextra $(EXTRA_CFLAGS)
-LDFLAGS += -dynamiclib -undefined dynamic_lookup $(EXTRA_LDFLAGS)
-
-all: verify $(SOFILE)
-
-.m.so:
-	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
-
-install: install-objc install-lua
-
-verify: $(LUAFILE)
-	luac-5.3 -p $(LUAFILE) && echo "Passed" || echo "Failed"
-
-install-objc: $(SOFILE)
-	mkdir -p $(PREFIX)/$(MODULE)
-	install -m 0644 $(SOFILE) $(PREFIX)/$(MODULE)
-	cp -vpR $(OBJCFILE:.m=.so.dSYM) $(PREFIX)/$(MODULE)
-
-install-lua: $(LUAFILE)
-	mkdir -p $(PREFIX)/$(MODULE)
-	install -m 0644 $(LUAFILE) $(PREFIX)/$(MODULE)
-
-clean:
-	rm -v -rf $(SOFILE) *.dSYM $(DOC_FILE)
-
-uninstall:
-	rm -v -f $(PREFIX)/$(MODULE)/{$(subst $(space),$(comma),$(ALLFILES))}
-	(pushd $(PREFIX)/$(MODULE)/ ; rm -v -fr $(OBJCFILE:.m=.so.dSYM) ; popd)
-	rmdir -p $(PREFIX)/$(MODULE) ; exit 0
-
-.PHONY: all clean uninstall verify install install-objc install-lua
-~~~
-
-I use this particular Makefile because it is pretty generic and works without change for almost all of the modules I have coded.  Change the `PREFIX` line so that it matches your desired location (i.e change _asm to your organizational label of choice).  I've chosen to put this in my home directory in the `.hammerspoon` subdirectory because this is included in Hammerspoon's search paths (`package.path` and `package.cpath`) by default.  The directory structure from that location will be `hs/_asm/disks/` for this module because the command `require("hs._asm.disks")` will internally convert this to "hs/_asm/disks/" when searching for `init.lua`.
-
-This Makefile determines the module's name (disks) by checking the directory it is in, and can handle any number of lua or objective-c files in the directory.  It will also include the debugging support files (*.dSYM) with the module, so Console can (usually) provide line numbers in the crash log.
+This Makefile determines the module's name by checking the directory it is in, and can handle any number of lua or objective-c files in the directory.  It will also include the debugging support files (*.dSYM) with the module, so Console can (usually) provide line numbers in the crash log and the documentation file `docs.json` if you create it.
 
 The warnings generated by this Makefile are a little more restrictive than those used within the core application, but mainly with implicit data type conversion.  I've found that I'd rather be explicit so I know where precision may be affected.  In addition, this makefile includes ARC support for the module, which is considered a requirement for anything being submitted for possible inclusion in the Hammerspoon core.
 
-As stated above, your tastes and requirements may differ, so use what works best for you.
+You may also want to adjust the `HS_APPLICATION` line if Hammerspoon is not installed in `/Applications` and the `PREFIX` line if your Hammerspoon configuration is not in `~/.hammerspoon`.  Or you can do so during building, e.g. `PREFIX=xxx HS_APPLICATION=yyy make`.
+
+This makefile supports the expected targets "all", "install", and "uninstall", which will perform as expected.
+
+There are also a few other targets to make note of:
+
+~~~sh
+$ make docs
+~~~
+This will generate a `docs.json` file based on the documentation comments embedded in your source file.
+
+~~~sh
+$ VERSION=X.Y make release
+~~~
+This will create a file named `<dir-name>-vX.Y.tar.gz` which will contain the lua files and compiled code which can be used as a release bundle for people who don't want to manually compile your module.
+
+~~~sh
+$ VERSION=X.Y make releaseWithDocs
+~~~
+Same as above, but also include the `docs.json` file.
+
+~~~sh
+$ make markdown
+~~~
+Creates a file named `README.tmp.md` (which you should rename to `README.md` after editing it) which contains the documentation for the module in a format suitable for inclusion if you save your module's source code at Github.  To use this, you will need to download a support file and edit the `MARKDOWNMAKER` variable in the Makefile -- see the comments in the Makefile itself for the link.
+
+~~~sh
+$ make markdownWithTOC
+~~~
+Same as above, but includes a list of all functions/methods at the top of the file with links so you can jump directly to the documentation for the chosen entry.
+
+Your tastes and requirements may differ, so use what works best for you.
 
 ##### internal.m
-
-<del>Before we get started, a couple of things to consider... There are some useful definitions and short code snippits in a file named `hammerspoon.h` which is included in the core application.  To take advantage of this file, perform the following in your module's directory: `ln -s /Applications/Hammerspoon.app/Contents/Resources/hammerspoon.h` (Note that this requirement is necessary for any module you create.  There is discussion on moving this information into the LuaSkin framework or into its own framework, so this step may go away.)</del>
-
-<del>There is also a LuaSkin framework provided with Hammerspoon which simplifies some of the code necessary to interface with Hammerspoon.  It is highly recommended, but not required, for a 3rd-party module to utilize this class.  It is required, if you want your module to be considered for inclusion in the core.  To utilize this framework, perform the following (it only needs to be done once): `sudo ln -s /Applications/Hammerspoon.app/Contents/Frameworks/LuaSkin.framework /Library/Frameworks/LuaSkin.framework`
-
-You will be prompted for your password, and the framework will be linked where it can be found by the compiler.
-</del>
-
-To link properly with the LuaSkin framework edit the `HS_APPLICATION` variable in the Makefile described above or include it as a prefix when issuing the make command.  The `HS_APPLICATION` variable should be set to the location where the Hammerspoon.app is installed.  Usually this will be in /Applications, and if so, you don't need to make any changes.  If you have installed it in another location, edit the Makefile as suggested, or build it with a command like this:
-~~~sh
-$ HS_APPLICATION=/path/where/hammerspoon/is/installed make
-~~~
-
-##### internal.m - a breakdown of parts
-
-Here is a breakdown of the skeleton I use.  It will be followed with the specific example for this module (hs._asm.disks)
-
-Some basic header stuff.  Note the #define USERDATA_TAG... this should be uncommented and set to a specific string which Lua will use to tag any data object (userdata) this module sends back to Lua/Hammerspoon with.  Think of it as the "type" of data this module works with and since only this module can understand it, it needs a unique type name.  If your module doesn't have a specific data object that it will be passing back and forth (i.e. it relies on the basic number, string, and table types only), you can leave this commented out.
-
-~~~objC
-#import <Cocoa/Cocoa.h>
-#import <LuaSkin/LuaSkin.h>
-
-// #define USERDATA_TAG        "hs._asm.module"
-int refTable ;
-~~~
-
-A reminder that this is where the main module functions are expected to be defined.  Note that any function which is to be called as a Lua function or method should have the signature specified in the code below and return an integer containing the number of results pushed onto the stack (note that if the result is a table, no matter how many items the table contains, it is still considered 1 returned value -- the table):
-
-~~~objC
-// this is where the core functionality should go
-//
-// static int moduleFunction(lua_State *L) {
-//  ... code here ...
-//   return 1 ;
-// }
-~~~
-
-Some support functions and data for the public "interface" to this module.  They are commented out because not all modules will require them.
-
-This provides a more type specific representation of the userdata object if it is accessed directly in the Hammerspoon console.  By default, userdata would appear as something like: `userdata: 0x600000652bc8`.  This function should push a string onto the Lua stack and return 1 to indicate one result is being returned.
-
-~~~objC
-// static int userdata_tostring(lua_State* L) {
-// return 1 ;
-// }
-~~~
-
-Specific cleanup when a specific userdata instance is garbage collected (goes out of scope).
-
-~~~objC
-// static int userdata_gc(lua_State* L) {
-//     return 0 ;
-// }
-~~~
-
-Specific cleanup when the entire module goes out of scope. Usually this only occurs when your Hammerspoon configuration is reloaded or the Hammerspoon application is quit.
-
-~~~objC
-// static int meta_gc(lua_State* __unused L) {
-//     return 0 ;
-// }
-~~~
-
-The metadata table which contains the methods which will be available to act directly on the userdata object returned for this module.  It is a array of arrays where each inner array contains 2 elements: a string representing the method name, and a c-function representing the c function which contains the code to execute.  It is terminated with an array pair of {NULL, NULL}.
-
-~~~objC
-// Metatable for userdata objects
-// static const luaL_Reg userdata_metaLib[] = {
-//     {"__tostring", userdata_tostring},
-//     {"__gc",       userdata_gc},
-//     {NULL,         NULL}
-// };
-~~~
-
-The list of functions which are directly available as functions in this module.  These functions are available to be called directly and do not rely on the presence of a userdata - in fact, one or more of these are usually required to create the userdata object necessary to access the above methods.  The format is the same as described above.
-
-~~~objC
-// Functions for returned object when module loads
-static luaL_Reg moduleLib[] = {
-    {NULL, NULL}
-};
-~~~
-
-The metatable for the module itself.  I seldom actually use this unless a module wide garbage collection function is required.
-
-~~~objC
-// // Metatable for module, if needed
-// static const luaL_Reg module_metaLib[] = {
-//     {"__gc", meta_gc},
-//     {NULL,   NULL}
-// };
-~~~
-
-The `luaopen` function:  Traditionally the last function in the file, it is invoked via Lua when this portion of the module is loaded with the `require` statement in our `init.lua` file above.  It must be named as `luaopen_path` where path is the path specified in the require statement with each period (.) changed to an underscore (_).  For our example of `hs._asm.disks.internal`, this would be `luaopen_hs__asm_disks_internal`.
-
-~~~objC
-// NOTE: ** Make sure to change luaopen_..._internal **
-int luaopen_hs__asm_module_internal(lua_State* L) {
-    LuaSkin *skin = [LuaSkin shared];
-// Use this if your module doesn't have a module specific userdata object that it returns.
-//    refTable = [skin registerLibrary:moduleLib metaFunctions:nil] ; // or module_metaLib
-// Use this if at least some of your functions return or act on a specific object unique to this module
-    refTable = [skin registerLibraryWithObject:USERDATA_TAG
-                                     functions:moduleLib
-                                 metaFunctions:nil // or module_metaLib
-                               objectFunctions:userdata_metaLib ];
-
-    return 1;
-}
-~~~
-
-##### internal.m (the real deal)
-
-Here is the final code for this example.  Note that this code uses the LuaSkin framework.  Specific examples of differences if you don't use the framework will follow.
-
-~~~objC
-#import <Cocoa/Cocoa.h>
-#import <LuaSkin/LuaSkin.h>
-
-#define USERDATA_TAG        "hs._asm.disks"
-int refTable ;
-
-@interface HSDiskWatcherClass : NSObject
-    @property int fn;
-@end
-
-@implementation HSDiskWatcherClass
-    - (void) _heard:(id)note {
-// make sure we perform this on the main thread... Hammerspoon crashes when lua code
-// executes on any other thread.
-        [self performSelectorOnMainThread:@selector(heard:)
-                                            withObject:note
-                                            waitUntilDone:YES];
-    }
-
-    - (void) heard:(NSNotification*)note {
-        LuaSkin *skin = [LuaSkin shared] ;
-
-        if (self.fn != LUA_NOREF) {
-            lua_State *_L = [skin L];
-            [skin pushLuaRef:refTable ref:self.fn];
-            [skin pushNSObject:[note name]] ;
-
-            [skin pushNSObject:note.userInfo withOptions:LS_NSDescribeUnknownTypes] ;
-
-            if (![skin protectedCallAndTraceback:2 nresults:0]) {
-                const char *errorMsg = lua_tostring(_L, -1);
-                [skin logError:[NSString stringWithFormat:@"%s: %s", USERDATA_TAG, errorMsg]];
-                lua_pop(_L, 1) ; // remove error message from stack
-            }
-        }
-    }
-@end
-
-static int newObserver(lua_State* L) {
-    LuaSkin *skin = [LuaSkin shared] ;
-    [skin checkArgs:LS_TFUNCTION, LS_TBREAK];
-
-    HSDiskWatcherClass* listener = [[HSDiskWatcherClass alloc] init];
-
-    lua_pushvalue(L, 1);
-    listener.fn               = [skin luaRef:refTable];
-
-    void** ud = lua_newuserdata(L, sizeof(id*)) ;
-    *ud = (__bridge_retained void*)listener ;
-
-    luaL_getmetatable(L, USERDATA_TAG) ;
-    lua_setmetatable(L, -2) ;
-
-    return 1;
-}
-
-static int startObserver(lua_State* L) {
-    HSDiskWatcherClass* listener = (__bridge HSDiskWatcherClass*)(*(void**)luaL_checkudata(L, 1, USERDATA_TAG));
-    NSNotificationCenter *center = [[NSWorkspace sharedWorkspace] notificationCenter] ;
-
-    [center addObserver:listener
-               selector:@selector(_heard:)
-                   name:NSWorkspaceDidMountNotification
-                 object:nil];
-    [center addObserver:listener
-               selector:@selector(_heard:)
-                   name:NSWorkspaceWillUnmountNotification
-                 object:nil];
-    [center addObserver:listener
-               selector:@selector(_heard:)
-                   name:NSWorkspaceDidUnmountNotification
-                 object:nil];
-
-    // this is a convention common in Hammerspoon -- any method on a userdata object which isn't used to
-    // specifically request data or check on the objects state should return the userdata object itself.
-    // This allows method chaining as will be seen in the example of usage below.
-    lua_settop(L,1);
-    return 1;
-}
-
-static int stopObserver(lua_State* L) {
-    HSDiskWatcherClass* listener = (__bridge HSDiskWatcherClass*)(*(void**)luaL_checkudata(L, 1, USERDATA_TAG));
-    NSNotificationCenter *center = [[NSWorkspace sharedWorkspace] notificationCenter] ;
-
-    [center removeObserver:listener
-                      name:NSWorkspaceDidMountNotification
-                    object:nil];
-    [center removeObserver:listener
-                      name:NSWorkspaceWillUnmountNotification
-                    object:nil];
-    [center removeObserver:listener
-                      name:NSWorkspaceDidUnmountNotification
-                    object:nil];
-    lua_settop(L,1);
-    return 1;
-}
-
-// Not that useful, but at least we know what type of userdata it is, instead of just "userdata".
-static int userdata_tostring(lua_State* L) {
-    lua_pushstring(L, [[NSString stringWithFormat:@"%s: (%p)", USERDATA_TAG, lua_topointer(L, 1)] UTF8String]) ;
-    return 1 ;
-}
-
-static int userdata_gc(lua_State* L) {
-    // stop observer, if running, and clean up after ourselves.
-
-    stopObserver(L) ;
-    HSDiskWatcherClass* listener = (__bridge_transfer HSDiskWatcherClass*)(*(void**)luaL_checkudata(L, 1, USERDATA_TAG));
-    listener.fn = [[LuaSkin shared] luaUnref:refTable ref:listener.fn];
-    listener = nil ;
-    return 0 ;
-}
-
-// static int meta_gc(lua_State* __unused L) {
-//     return 0 ;
-// }
-
-// Metatable for userdata objects
-static const luaL_Reg userdata_metaLib[] = {
-    {"start",      startObserver},
-    {"stop",       stopObserver},
-    {"__tostring", userdata_tostring},
-    {"__gc",       userdata_gc},
-    {NULL,         NULL}
-};
-
-// Functions for returned object when module loads
-static luaL_Reg moduleLib[] = {
-    {"new", newObserver},
-    {NULL,  NULL}
-};
-
-// // Metatable for module, if needed
-// static const luaL_Reg module_metaLib[] = {
-//     {"__gc", meta_gc},
-//     {NULL,   NULL}
-// };
-
-// NOTE: ** Make sure to change luaopen_..._internal **
-int luaopen_hs__asm_disks_internal(lua_State* __unused L) {
-    LuaSkin *skin = [LuaSkin shared];
-    refTable = [skin registerLibraryWithObject:USERDATA_TAG
-                                     functions:moduleLib
-                                 metaFunctions:nil // nil or module_metaLib
-                               objectFunctions:userdata_metaLib ];
-
-    return 1;
-}
-~~~
-
-##### Example of use
-
-To test out the module, first install it with `make install` in the disks directory.
-
-Now, open up the Hammerspoon console and type in the following:
-
-~~~lua
-disks = require("hs._asm.disks")
-a = function(type, keys) print(type..": "..hs.inspect(keys):gsub("%s+"," ")) end
-b = disks.new(a):start()
-~~~
-
-As stated earlier, the name of the module, `hs._asm.disks` is purely an orginizational convention -- for this example, we can refer to any of its functions (in this case only `new`) as members of `disks` once we've required it via the first line.  Also note the user of `:start()` after the `disks.new` function -- this is the method chaining referred to in the code comments above and is encouraged because it allows long chains of methods that adjust or prepare the userdata to be specified in one line of Lua code but still store the userdata object in `b` so it can be used later (e.g. `b:stop()` to disable the callback and stop displaying disk changes in the console.)
-
-To test out the module, I mounted and unmounted the EFI partition of my primary hard drive from the command line in Terminal:
-
-~~~sh
-$ diskutil mount disk0s1
-$ diskutil unmount disk0s1
-~~~
-
-The results in the Hammerspoon console:
-
-~~~
-NSWorkspaceDidMountNotification: { NSDevicePath = "/Volumes/EFI", NSWorkspaceVolumeLocalizedNameKey = "EFI", NSWorkspaceVolumeURLKey = "file:///Volumes/EFI/" }
-NSWorkspaceWillUnmountNotification: { NSDevicePath = "/Volumes/EFI", NSWorkspaceVolumeLocalizedNameKey = "EFI", NSWorkspaceVolumeURLKey = "file:///Volumes/EFI/" }
-NSWorkspaceDidUnmountNotification: { NSDevicePath = "/Volumes/EFI", NSWorkspaceVolumeLocalizedNameKey = "EFI", NSWorkspaceVolumeURLKey = "file:///Volumes/EFI/" }
-~~~
-
-Mission accomplished!
-
-##### Without the LuaSkin Framework
-
-For those more familiar with the core Lua C API, this will also work, but makes the code a little more complicated.  First off, the HSDiskWatcherClass would have to have a property to hold the LuaState, but this is relatively minor.
-
-The luaopen function might look something like this:
-
-~~~objC
-int luaopen_{F_PATH}_{MODULE}_internal(lua_State* L) {
-    luaL_newlib(L, userdata_metaLib);
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__index");
-        lua_setfield(L, LUA_REGISTRYINDEX, USERDATA_TAG);
-
-// Create table for luaopen
-    luaL_newlib(L, moduleLib);
-//        luaL_newlib(L, module_metaLib);
-//        lua_setmetatable(L, -2);
-
-    return 1;
-}
-~~~
-
-The heard: selector in HSDiskWatcherClass might look something like this:
-
-~~~objC
-    - (void) heard:(NSNotification*)note {
-        if (self.fn != LUA_NOREF) {
-            lua_State *_L = self.L;
-            lua_getglobal(_L, "debug");
-            lua_getfield(_L, -1, "traceback");
-            lua_remove(_L, -2);
-            lua_rawgeti(_L, LUA_REGISTRYINDEX, self.fn);
-            lua_pushstring(_L, [[note name] UTF8String]);
-            lua_newtable(_L) ;
-            for (id key in note.userInfo) {
-                lua_pushstring(_L, [[[note.userInfo objectForKey:key] description] UTF8String]) ;
-                lua_setfield(_L, -2, [key UTF8String]) ;
-            }
-
-            if (lua_pcall(_L, 2, 0, -4) != LUA_OK) {
-                lua_getglobal(L, "hs");
-                lua_getfield(L, -1, "showError");
-                lua_remove(L, -2);
-                lua_pushvalue(L, -2);
-                lua_pcall(L, 1, 0, 0);
-            }
-        }
-    }
-~~~
-
-The userdata_gc function might look something like this:
-
-~~~objC
-static int userdata_gc(lua_State* L) {
-    // stop observer, if running, and clean up after ourselves.
-
-    stopObserver(L) ;
-    HSDiskWatcherClass* listener = (__bridge_transfer HSDiskWatcherClass*)(*(void**)luaL_checkudata(L, 1, USERDATA_TAG));
-    if (listener.fn != LUA_NOREF) {
-        luaL_unref(L, LUA_REGISTRYINDEX, listener.fn);
-        listener.fn = LUA_NOREF ;
-    }
-    listener = nil ;
-    return 0 ;
-}
-~~~
-
-As you can see, not too difficult, but a little longer and (in my oppinion) less clear.  An added benefit of using the LuaSkin framework is that the stored references to functions, etc. in the Lua registry for this module are isolated from other modules... properly coded, this shouldn't be a concern, but in tracking down bugs, it can be easier to realize you have a problem when getting a value of nil or LUA_NOREF rather than something else's data and not realizing it.
 
 ##### Conclusion
 
