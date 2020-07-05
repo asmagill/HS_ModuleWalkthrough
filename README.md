@@ -75,7 +75,7 @@ all: verify $(SOFILE)
 install: install-objc install-lua
 
 verify: $(LUAFILE)
-	luac-5.3 -p $(LUAFILE) && echo "Passed" || echo "Failed"
+	luac -p $(LUAFILE) && echo "Passed" || echo "Failed"
 
 install-objc: $(SOFILE)
 	mkdir -p $(PREFIX)/$(MODULE)
